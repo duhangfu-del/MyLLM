@@ -1,0 +1,55 @@
+# =====================================================
+# MiniMind 预训练配置文件
+# 所有训练超参数、数据路径、日志设置均在此定义
+# 修改后无需改动代码，只需重新运行训练脚本
+# =====================================================
+
+# 模型结构配置文件路径（JSON 格式）
+model_config: "configs/model_config.json"
+
+# ---------------------- 数据 -------------------------
+data:
+  # 预处理好的二进制数据元信息文件
+  meta_path: "data/raw/pretrain/SpongeBobPRO_pretrain_512_final.meta"
+  # 预处理好的二进制数据文件（token ids）
+  bin_path: "data/raw/pretrain/SpongeBobPRO_pretrain_512_final.bin"
+  # 每条样本的最大长度（应与 meta 中 seq_len 保持一致，此处为 512）
+  max_seq_len: 512
+
+# ------------------- 训练超参数 -----------------------
+training:
+  from_weight: null          # 可选，预训练权重文件路径（用于继续预训练）
+  use_compile: false         # 是否使用 torch.compile
+  batch_size: 16                 # 每张 GPU 的 micro batch size
+  gradient_accumulation_steps: 4 # 梯度累积步数（模拟更大的总 batch）
+  num_epochs: 3                  # 训练的总轮数（通常会被 max_steps 提前终止）
+  max_steps: 5000              # 训练最大步数（优先级高于 num_epochs）
+  learning_rate: 3.0e-4          # 初始学习率（AdamW 的峰值）
+  min_lr: 1.0e-5                 # 余弦退火的最小学习率
+  warmup_steps: 1000             # 学习率从 0 线性增长到峰值所需的步数
+  weight_decay: 0.1              # AdamW 的权重衰减系数（不对 bias 和 norm 层施加）
+  max_grad_norm: 1.0             # 梯度裁剪的最大范数（防止梯度爆炸）
+
+# ------------------- 混合精度 -------------------------
+amp:
+  use_amp: true                  # 是否启用自动混合精度
+  amp_dtype: "bfloat16"          # 混合精度类型：bfloat16 或 float16
+                                 # bfloat16 不需要 GradScaler，float16 需要
+
+# ------------------- 分布式 -------------------------
+distributed:
+  backend: "nccl"                # 分布式通信后端（NCCL 用于 GPU）
+
+# ------------------ 日志与保存 ------------------------
+log:
+  log_interval: 10               # 每隔多少步打印一次训练 loss
+  save_interval: 1000            # 每隔多少步保存一次模型 checkpoint
+  eval_interval: 2000            # 每隔多少步执行一次 benchmark 评测（C3/XCOPA）
+  save_total_limit: 3            # 最多保留最近的几个 checkpoint（旧的自动删除）
+
+# ------------------ SwanLab 配置 ----------------------
+swanlab:
+  use_swanlab: true              # 是否启用 SwanLab 在线实验管理
+  project: "MiniMind"            # SwanLab 项目名称
+  run_name: "pretrain_0.1B_baseline" # 本次运行名称
+  log_dir: "logs/swanlab"        # 本地日志存储目录

@@ -1,0 +1,13 @@
+# Large binary files
+data/raw/pretrain/SpongeBobPRO_pretrain_512_final.bin
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# IDE
+.idea/
+
+# SwanLab logs
+logs/swanlab/
