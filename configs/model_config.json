@@ -6,9 +6,9 @@
     "num_kv_heads": 4,
     "intermediate_size": 2048,
     "max_seq_len": 2048,
-    "rope_theta": 10000.0,
+    "rope_theta": 100000.0,
     "use_flash_attn": false,
     "tie_word_embeddings": true,
     "rms_norm_eps": 1e-6,
-    "dropout": 0.0
+    "dropout": 0.15
   }

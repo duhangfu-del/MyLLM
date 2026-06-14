@@ -72,8 +72,8 @@ class PretrainDataset(Dataset):
         - labels: 与 input_ids 完全相同，因为预训练目标是下一个 token 预测，
                   后续在训练循环中会通过 shift 操作自动对齐。
         """
-        # 从内存映射中读取第 idx 行，并转换为 int64 后转为 torch tensor
-        tokens = self.data[idx].astype(np.int64)
-        input_ids = torch.from_numpy(tokens)
+        # 从内存映射中读取第 idx 行，转换为普通的 Python 列表，再转为 tensor（避免 numpy 兼容问题）
+        tokens = self.data[idx].tolist()  # 直接转为 list
+        input_ids = torch.tensor(tokens, dtype=torch.long)
         labels = input_ids.clone()  # 标签与输入完全相同
         return input_ids, labels

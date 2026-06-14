@@ -63,7 +63,8 @@ class GroupedQueryAttention(nn.Module):
         v = v.view(batch_size, seq_len, self.num_kv_heads, self.head_dim).transpose(1, 2)
 
         # ===== 2. RoPE（仅对新 token 的 q,k 施加） =====
-        cos, sin = self.rotary_emb(q, seq_len=seq_len)
+        past_len = past_key_value[0].size(2) if past_key_value is not None else 0
+        cos, sin = self.rotary_emb(q, seq_len=seq_len, position_offset=past_len)
         q, k = apply_rotary_pos_emb(q, k, cos, sin)
 
         # ===== 3. 拼接历史 KV cache =====

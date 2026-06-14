@@ -48,12 +48,13 @@ class RotaryEmbedding(nn.Module):
         self.register_buffer("cos_cached", emb.cos()[None, None, :, :], persistent=False)
         self.register_buffer("sin_cached", emb.sin()[None, None, :, :], persistent=False)
 
-    def forward(self, x: torch.Tensor, seq_len: int = None):
+    def forward(self, x: torch.Tensor, seq_len: int = None, position_offset: int = 0):
         """
         返回当前序列长度对应的 cos 和 sin
         Args:
             x: 用于获取设备与数据类型的输入张量（形状无关）
             seq_len: 实际序列长度，默认取 x 的序列长度
+            position_offset: 位置偏移量，用于 KV-cache 增量解码时指定起始位置
         Returns:
             cos: shape (1, 1, seq_len, dim)
             sin: shape (1, 1, seq_len, dim)
@@ -61,11 +62,12 @@ class RotaryEmbedding(nn.Module):
         if seq_len is None:
             seq_len = x.shape[-2]  # 假设 x 维度为 (batch, head, seq, dim)
         # 如果序列长度超过缓存，重新计算
-        if seq_len > self.max_seq_len:
-            self._set_cos_sin(seq_len=seq_len)
+        total_len = seq_len + position_offset
+        if total_len > self.max_seq_len:
+            self._set_cos_sin(seq_len=total_len)
         return (
-            self.cos_cached[:, :, :seq_len, :].to(x.dtype),
-            self.sin_cached[:, :, :seq_len, :].to(x.dtype),
+            self.cos_cached[:, :, position_offset:position_offset + seq_len, :].to(x.dtype),
+            self.sin_cached[:, :, position_offset:position_offset + seq_len, :].to(x.dtype),
         )
 
 

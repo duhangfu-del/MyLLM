@@ -1,5 +1,14 @@
 # Large binary files
 data/raw/pretrain/SpongeBobPRO_pretrain_512_final.bin
+data/raw/pretrain/SpongeBobPRO_pretrain_512_final.meta
+
+# Checkpoints
+checkpoints/
+
+# Large datasets
+data/raw/sft/sft_train.jsonl
+data/raw/sft/train_3.5M_CN.json
+evaluation/benchmarks/data/
 
 # Python
 __pycache__/

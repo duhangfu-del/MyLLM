@@ -1,0 +1,73 @@
+# ===================================================================
+# MiniMind SFT 微调配置文件
+# 所有训练超参数、路径均在此定义，修改后无需改动代码
+# ===================================================================
+
+# 模型结构配置（与预训练一致）
+model_config: "configs/model_config.json"
+
+# 预训练权重路径（使用你训练完成的 step_184914.pt）
+pretrain_checkpoint: "checkpoints/pretrain/step_184914.pt"
+
+# -------------------- 数据 --------------------
+data:
+  # 训练数据路径（转换为 ChatML JSONL 后的 Belle 3.5M 数据）
+  train_path: "data/raw/sft/sft_train.jsonl"
+  # 最大序列长度（超过此长度的对话将被截断）
+  max_seq_len: 512
+
+# -------------------- 训练超参数 --------------------
+training:
+  # 每 GPU 的 micro batch 大小
+  batch_size: 32
+  # 梯度累积步数，有效 batch = batch_size * gradient_accumulation_steps
+  gradient_accumulation_steps: 4      
+  # 训练轮数
+  num_epochs: 3
+  # 初始学习率（SFT 推荐较小的值，如 2e-5）
+  learning_rate: 2.0e-5
+  # 余弦退火至的最小学习率（本脚本中实际会退火到 0，此值作为参考）
+  min_lr: 1.0e-6
+  # warmup 占总步数的比例
+  warmup_ratio: 0.03
+  # 权重衰减系数（不对 bias 和 norm 层施加）
+  weight_decay: 0.01
+  # 梯度裁剪的最大范数
+  max_grad_norm: 1.0
+
+# -------------------- 混合精度 --------------------
+amp:
+  # 是否启用自动混合精度
+  use_amp: true
+  # 混合精度类型：bfloat16 或 float16
+  amp_dtype: "bfloat16"               # bfloat16 更稳定，且不需要 loss scaling
+
+# -------------------- 日志与保存 --------------------
+log:
+  # 每隔多少步打印一次训练损失
+  log_interval: 50
+  # 每隔多少步保存一次模型检查点
+  save_interval: 15000
+  # 每隔多少步执行一次评测（SFT 下可集成 LLM-as-Judge，当前仅预留）
+  eval_interval: 15000
+  # 最多保留最近的几个检查点
+  save_total_limit: 3
+
+# -------------------- SwanLab 配置 --------------------
+swanlab:
+  # 是否启用 SwanLab 在线实验管理
+  use_swanlab: true
+  # 项目名称
+  project: "MiniMind-SFT"
+  # 本次运行的名称
+  run_name: "sft_belle_3.5M"
+  # 本地日志存储目录
+  log_dir: "logs/swanlab_sft"
+
+  # -------------------- DeepSeek API Key（用于 LLM-as-Judge） --------------------
+# 强烈建议通过环境变量 DEEPSEEK_API_KEY 设置，避免泄漏。配置文件留空。
+deepseek_api_key: "sk-0bd641419b5045fdbb947ea9e843a8a5"   # 可在此填入 key，但不推荐
+
+# -------------------- SFT Benchmark 数据 --------------------
+benchmark:
+  data_path: "evaluation/benchmarks/data/100miniSponge.jsonl"   # 评测数据路径
