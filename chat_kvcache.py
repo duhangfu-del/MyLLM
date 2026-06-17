@@ -4,6 +4,7 @@ MiniMind 多轮对话推理脚本（支持 KV Cache，需配合修改后的模�
     python chat_kvcache.py --checkpoint checkpoints/sft/step_338100.pt --mode sft
 """
 
+import json
 import torch
 import argparse
 from tokenizers import Tokenizer
@@ -41,7 +42,13 @@ def main():
     args = parser.parse_args()
 
     tokenizer = Tokenizer.from_file("data/tokenizer/tokenizer_files/tokenizer.json")
-    model = MiniMindForCausalLM(MiniMindConfig(vocab_size=tokenizer.get_vocab_size())).to(args.device)
+    vocab_size = tokenizer.get_vocab_size()
+
+    with open("configs/model_config.json", 'r') as f:
+        model_cfg_dict = json.load(f)
+    model_cfg_dict['vocab_size'] = vocab_size
+    model_config = MiniMindConfig(**model_cfg_dict)
+    model = MiniMindForCausalLM(model_config).to(args.device)
     checkpoint = torch.load(args.checkpoint, map_location='cpu')
     state_dict = checkpoint.get('model_state_dict', checkpoint)
     model.load_state_dict(state_dict, strict=False)
@@ -67,10 +74,11 @@ def main():
             prompt = build_chat_prompt(history, user_input, use_system=args.system)
 
         enc = tokenizer.encode(prompt)
-        max_len = model.config.max_seq_len - args.max_new_tokens
-        if len(enc.ids) > max_len:
-            enc.ids = enc.ids[-max_len:]   # 尾部截断，保留最近对话
-        input_ids = torch.tensor(enc.ids, dtype=torch.long).unsqueeze(0).to(args.device)
+        max_len = 512 - args.max_new_tokens  # 与训练时 max_seq_len 保持一致
+        token_ids = enc.ids
+        if len(token_ids) > max_len:
+            token_ids = token_ids[-max_len:]   # 尾部截断，保留最近对话
+        input_ids = torch.tensor(token_ids, dtype=torch.long).unsqueeze(0).to(args.device)
 
         print("🤖 Assistant: ", end="", flush=True)
 
@@ -102,6 +110,8 @@ def main():
 
         print()
         response = tokenizer.decode(generated[0, input_ids.size(1):].tolist())
+        if "<|im_end|>" in response:
+            response = response.split("<|im_end|>")[0]
         if args.mode == 'sft':
             history.append({"role": "user", "content": user_input})
             history.append({"role": "assistant", "content": response})

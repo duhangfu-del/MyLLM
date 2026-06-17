@@ -11,6 +11,7 @@ MiniMind 多轮对话推理脚本（修复版）
     python chat.py --checkpoint checkpoints/sft/step_338100.pt --mode sft
 """
 
+import json
 import torch
 import argparse
 from tokenizers import Tokenizer
@@ -58,7 +59,10 @@ def main():
     tokenizer = Tokenizer.from_file("data/tokenizer/tokenizer_files/tokenizer.json")
     vocab_size = tokenizer.get_vocab_size()
 
-    model_config = MiniMindConfig(vocab_size=vocab_size)
+    with open("configs/model_config.json", 'r') as f:
+        model_cfg_dict = json.load(f)
+    model_cfg_dict['vocab_size'] = vocab_size
+    model_config = MiniMindConfig(**model_cfg_dict)
     model = MiniMindForCausalLM(model_config)
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint, map_location='cpu')
@@ -88,7 +92,7 @@ def main():
 
         enc = tokenizer.encode(prompt)
         # 截断：保留开头（系统提示+早期对话）和末尾的最近对话，但确保不超出模型限制
-        max_len = model_config.max_seq_len - args.max_new_tokens
+        max_len = 512 - args.max_new_tokens  # 与训练时 max_seq_len 保持一致
         if len(enc.ids) > max_len:
             # 从头部截断：删除最早的对话内容，保留系统提示（如果有）和最近的几轮
             system_len = 0
@@ -101,8 +105,10 @@ def main():
             rest_ids = enc.ids[system_len:]
             # 保留 rest_ids 的最后 (max_len - system_len) 个
             keep_rest = rest_ids[-(max_len - system_len):]
-            enc.ids = prefix_ids + keep_rest
-        input_ids = torch.tensor(enc.ids, dtype=torch.long).unsqueeze(0).to(args.device)
+            token_ids = prefix_ids + keep_rest
+        else:
+            token_ids = enc.ids
+        input_ids = torch.tensor(token_ids, dtype=torch.long).unsqueeze(0).to(args.device)
 
         eos_id = tokenizer.token_to_id("<|im_end|>") or tokenizer.token_to_id("<eos>")
         if eos_id is None:
