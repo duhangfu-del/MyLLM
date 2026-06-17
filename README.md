@@ -116,6 +116,37 @@ python evaluation/benchmarks/sft_eval.py --checkpoint checkpoints/sft/step_33810
 - 混合精度：bfloat16
 - 实验管理：SwanLab
 
-## 致谢
+## 下载
 
-本项目参考了 MiniMind 项目的设计思路，用于学习 Transformer 模型的完整训练流程。
+### 模型权重
+
+**SDK 下载：**
+```bash
+pip install modelscope
+```
+```python
+from modelscope import snapshot_download
+model_dir = snapshot_download('DuhangFu/MiniMind')
+```
+
+**Git 下载：**
+```bash
+git clone https://www.modelscope.cn/DuhangFu/MiniMind.git
+```
+
+### 数据
+
+包含预训练语料、SFT 训练数据、Benchmark 评测数据、Tokenizer 文件。
+
+**SDK 下载：**
+```python
+from modelscope.msdatasets import MsDataset
+ds = MsDataset.load('DuhangFu/MiniMind')
+```
+
+**Git 下载：**
+```bash
+git lfs install
+git clone https://www.modelscope.cn/datasets/DuhangFu/MiniMind.git
+```
+
